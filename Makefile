@@ -1,7 +1,7 @@
 all: build
 
 build:
-	cargo +nightly build --release
+	cargo build --release
 
 test:
-	cargo +nightly test
+	cargo test

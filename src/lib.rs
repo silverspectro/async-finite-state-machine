@@ -1,8 +1,3 @@
-// https://github.com/rust-lang/rust/issues/54883
-#![feature(or_patterns)]
-
-use std::error::Error;
-
 pub trait Machine {
     type Events;
     type State;
