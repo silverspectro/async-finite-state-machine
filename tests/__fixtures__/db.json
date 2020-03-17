@@ -1,0 +1,214 @@
+{
+    "users": [{
+        "id": "5e7113823862651f63b90ce6",
+        "eyeColor": "blue",
+        "name": "Sigrid Tillman",
+        "company": "Rath Inc",
+        "email": "euna_perferendis@gmail.com",
+        "friends": [ 
+            {
+                "id": "30",
+                "name": "Lamar Wisoky"
+            },
+            {
+                "id": "31",
+                "name": "Hillary Bauch"
+            },
+            {
+                "id": "32",
+                "name": "Scarlett Price"
+            }
+            
+        ]
+    }, {
+        "id": "5e7113823862651f63b90ce7",
+        "eyeColor": "brown",
+        "name": "Mrs. Geovanny Christiansen",
+        "company": "Hand and Sons",
+        "email": "maymie_incidunt@yahoo.com",
+        "friends": [ 
+            {
+                "id": "33",
+                "name": "Lavada Yundt"
+            },
+            {
+                "id": "34",
+                "name": "Nichole Ziemann DDS"
+            },
+            {
+                "id": "35",
+                "name": "Neoma Hilpert"
+            }
+            
+        ]
+    }, {
+        "id": "5e7113823862651f63b90ce8",
+        "eyeColor": "brown",
+        "name": "Letha Kessler",
+        "company": "Walter and Sons",
+        "email": "adrianna_placeat@hotmail.com",
+        "friends": [ 
+            {
+                "id": "36",
+                "name": "Herta Shanahan II"
+            },
+            {
+                "id": "37",
+                "name": "Dr. Pinkie Kuvalis"
+            },
+            {
+                "id": "38",
+                "name": "Evert Daniel"
+            }
+            
+        ]
+    }, {
+        "id": "5e7113823862651f63b90ce9",
+        "eyeColor": "brown",
+        "name": "Tyler Kuhic I",
+        "company": "Bashirian, McCullough and Collins",
+        "email": "alias.lisette@yahoo.com",
+        "friends": [ 
+            {
+                "id": "39",
+                "name": "Rory Gislason"
+            },
+            {
+                "id": "40",
+                "name": "Stewart Koch"
+            },
+            {
+                "id": "41",
+                "name": "Mrs. Shawn Stanton"
+            }
+            
+        ]
+    }, {
+        "id": "5e7113823862651f63b90cea",
+        "eyeColor": "green",
+        "name": "Mrs. Stewart Adams",
+        "company": "Hudson, Greenholt and Schuppe",
+        "email": "elliot_nulla@yahoo.com",
+        "friends": [ 
+            {
+                "id": "42",
+                "name": "Coleman Koch"
+            },
+            {
+                "id": "43",
+                "name": "Samantha Walsh"
+            },
+            {
+                "id": "44",
+                "name": "Mr. Lauren Crona"
+            }
+            
+        ]
+    }, {
+        "id": "5e7113823862651f63b90ceb",
+        "eyeColor": "brown",
+        "name": "Constantin Reynolds Jr.",
+        "company": "Bartell, Fadel and Wunsch",
+        "email": "elena_enim@gmail.com",
+        "friends": [ 
+            {
+                "id": "45",
+                "name": "Mrs. Felicita Schroeder"
+            },
+            {
+                "id": "46",
+                "name": "Jarred Willms"
+            },
+            {
+                "id": "47",
+                "name": "Thelma Powlowski"
+            }
+            
+        ]
+    }, {
+        "id": "5e7113823862651f63b90cec",
+        "eyeColor": "green",
+        "name": "Mrs. Destinee Smith",
+        "company": "Hilll LLC",
+        "email": "cleveland_quis@gmail.com",
+        "friends": [ 
+            {
+                "id": "48",
+                "name": "Wava Morissette"
+            },
+            {
+                "id": "49",
+                "name": "Mrs. Susana Mayert"
+            },
+            {
+                "id": "50",
+                "name": "Stewart Kemmer"
+            }
+            
+        ]
+    }, {
+        "id": "5e7113823862651f63b90ced",
+        "eyeColor": "brown",
+        "name": "Alexis Kihn",
+        "company": "Cruickshank-Rosenbaum",
+        "email": "gerry@yahoo.com",
+        "friends": [ 
+            {
+                "id": "51",
+                "name": "Mrs. Armand Quitzon"
+            },
+            {
+                "id": "52",
+                "name": "Kristian Lang"
+            },
+            {
+                "id": "53",
+                "name": "Mr. Raleigh Rippin"
+            }
+            
+        ]
+    }, {
+        "id": "5e7113823862651f63b90cee",
+        "eyeColor": "green",
+        "name": "Ms. Iva Hilpert",
+        "company": "McGlynn Inc",
+        "email": "ursula0808@yahoo.com",
+        "friends": [ 
+            {
+                "id": "54",
+                "name": "Ernie Bednar Jr."
+            },
+            {
+                "id": "55",
+                "name": "Mrs. Juston Ruecker"
+            },
+            {
+                "id": "56",
+                "name": "Ervin Little"
+            }
+            
+        ]
+    }, {
+        "id": "5e7113823862651f63b90cef",
+        "eyeColor": "brown",
+        "name": "Ms. Felicity Hand",
+        "company": "Hammes, Wiegand and Yundt",
+        "email": "johnathan4648@gmail.com",
+        "friends": [ 
+            {
+                "id": "57",
+                "name": "Hassan Jerde"
+            },
+            {
+                "id": "58",
+                "name": "Dane Nitzsche IV"
+            },
+            {
+                "id": "59",
+                "name": "Nova Price"
+            }
+            
+        ]
+    }  
+    ]
+}

@@ -1,0 +1,17 @@
+{
+    "users": [{% for i in range(end=10) %}{
+        "id": "{{ objectId() }}",
+        "eyeColor": "{{ random(values = ["blue", "brown", "green"]) }}",
+        "name": "{{ name() }}",
+        "company": "{{ company() }}",
+        "email": "{{ email() }}",
+        "friends": [ 
+            {% for i in range(end=3) %}{
+                "id": "{{ index() }}",
+                "name": "{{ name() }}"
+            }{% if i != 2 %},{% endif %}
+            {% endfor %}
+        ]
+    }{% if i != 9 %},{% endif %} {% endfor %} 
+    ]
+}
