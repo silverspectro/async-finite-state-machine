@@ -110,15 +110,17 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
       }
   }
 
-  #[derive(Debug, Clone)]
+  #[derive(Debug)]
   struct Tourniquet {
       state: States,
+      future_pool: Vec<StatesFuture>,
   };
 
   impl Tourniquet {
       pub fn new() -> Self {
           Tourniquet {
               state: States::Done(State { users: vec![] }),
+              future_pool: vec![],
           }
       }
   }
@@ -128,15 +130,14 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
       type State = State;
       type States = States;
       type Failures = Failures;
-      type StatesFuture = StatesFuture;
 
       /// transition gets an event and change the internal data relative to the type of event
       /// and the returns the state of the machine
-      fn transition(&mut self, event: Self::Events) -> StatesFuture {
+      fn transition(&mut self, event: Self::Events) -> Result<&Self::States, Self::Failures> {
           match (self.get_state(), event) {
               (_, Events::GetUsers) => {
                 self.state = States::Loading(self.get_raw_state().clone());
-                StatesFuture::new(Box::new(async {
+                let f = StatesFuture::new(Box::new(async {
                   let client = Client::new();
                   let res = client.get("http://localhost:3333/users").send().await;
                   match res {
@@ -151,16 +152,19 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     }
                     Err(e) => Err(Failures::Message(e.to_string())),
                   }
-                }))
-              }
-              // (s, e) => {
-              //     Err(Failures::Message(format!("Failure on transition for: {:?}, Event: {:?}", s, e)))
-              // }
+                }));
+                self.future_pool.push(f);
+                self.run()
+              } 
           }
       }
 
       /// run computes the state of the machine relative to its state
       fn run(&mut self) -> Result<&Self::States, Self::Failures> {
+        let mut runtime = tokio::runtime::Runtime::new().unwrap();
+        while self.future_pool.len() > 0 {
+          self.state = runtime.block_on(self.future_pool.pop().unwrap())?;
+        };
           match self.get_state() {
               States::Loading(c) => {
                   if c.users.len() > 0 {
@@ -202,7 +206,6 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   let entries = [
       (
        Events::GetUsers,
-       States::Loading(State { users: vec![] }),
        States::Done(state1)
       )
   ];
@@ -214,13 +217,9 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   //
   // @TODO: handle the transition() as a Future
   // a process it in the run() while returning the Loading
-  let mut runtime = tokio::runtime::Runtime::new().unwrap();
-  for (event, before, after) in entries.iter() {
-      let f = tourniquet.transition(event.clone());
-      assert_eq!(tourniquet.get_state(), before);
-      tourniquet.state = runtime.block_on(f).unwrap();
-      tourniquet.run();
-      assert_eq!(tourniquet.get_state(), after);
+  for (event, after) in entries.iter() {
+      assert_eq!(tourniquet.transition(event.clone())?, after);
+      assert_eq!(tourniquet.run()?, after);
   }
 
   Ok(())

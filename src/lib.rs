@@ -20,9 +20,8 @@ pub trait AsyncMachine {
     type State;
     type States;
     type Failures;
-    type StatesFuture;
 
-    fn transition(&mut self, event: Self::Events) -> Self::StatesFuture;
+    fn transition(&mut self, event: Self::Events) -> Result<&Self::States, Self::Failures>;
     fn run(&mut self) -> Result<&Self::States, Self::Failures>;
 
     fn get_state(&self) -> &Self::States;
