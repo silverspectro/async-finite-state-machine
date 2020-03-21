@@ -1,7 +1,7 @@
 {
     "users": [{% for i in range(end=10) %}{
         "id": "{{ objectId() }}",
-        "eyeColor": "{{ random(values = ["blue", "brown", "green"]) }}",
+        "eye_color": "{{ random(values = ["blue", "brown", "green"]) }}",
         "name": "{{ name() }}",
         "company": "{{ company() }}",
         "email": "{{ email() }}",

@@ -1,5 +1,3 @@
-#[macro_use]
-extern crate serde;
 extern crate serde_json;
 extern crate async_std;
 extern crate futures;
@@ -19,44 +17,51 @@ use std::error::Error;
 use async_finite_state_machine::{ AsyncMachine };
 use futures::task;
 
+use std::thread;
+use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::mpsc;
+use std::sync::Mutex;
+use std::time::Duration;
+
 use {
-    futures::{
-        future::{FutureExt, BoxFuture},
-        task::{ArcWake, waker_ref},
-    },
     std::{
         future::Future,
-        sync::{Arc, Mutex},
-        sync::mpsc::{sync_channel, SyncSender, Receiver},
-        task::{Context, Poll},
-        time::Duration,
+        task::{Poll},
     },
 };
 
 #[test]
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> { 
-  struct StateFuture {
-    inner: Pin<Box<dyn Future<Output = Result<State, Failures>> + Send>>,
+  // StatesFuture needs that ? :
+  // https://rust-lang.github.io/async-book/02_execution/03_wakeups.html
+  // to handle the assignation of the state and the Loading ?
+  // @TODO
+  // Implement Executor for AsyncMachine ?
+  // https://rust-lang.github.io/async-book/02_execution/04_executor.html
+  struct StatesFuture {
+    inner: Pin<Box<dyn Future<Output = Result<States, Failures>> + Send>>,
   }
-  impl StateFuture {
-      fn new(fut: Box<dyn Future<Output = Result<State, Failures>> + Send>) -> Self {
+  impl StatesFuture {
+      fn new(fut: Box<dyn Future<Output = Result<States, Failures>> + Send>) -> Self {
           Self { inner: fut.into() }
       }
   }
 
-  impl fmt::Debug for StateFuture {
+  impl fmt::Debug for StatesFuture {
       fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-          f.pad("Future<State>")
+          f.pad("Future<States>")
       }
   }
 
-  impl Future for StateFuture {
-      type Output = Result<State, Failures>;
+  impl Future for StatesFuture {
+      type Output = Result<States, Failures>;
 
       fn poll(mut self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<Self::Output> {
           Pin::new(&mut self.inner).poll(cx)
       }
   }
+
   #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
   struct Friend {
       id: String,
@@ -65,7 +70,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
   struct User {
       id: String,
-      eyeColor: String,
+      eye_color: String,
       name: String,
       company: String,
       email: String,
@@ -105,53 +110,48 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
       }
   }
 
+  #[derive(Debug, Clone)]
   struct Tourniquet {
       state: States,
-      runtime: tokio::runtime::Runtime,
   };
 
   impl Tourniquet {
       pub fn new() -> Self {
           Tourniquet {
               state: States::Done(State { users: vec![] }),
-              runtime: tokio::runtime::Runtime::new().expect("cound not create runtime"),
           }
       }
   }
 
-  impl AsyncMachine for Tourniquet {
+  impl<'a> AsyncMachine for Tourniquet {
       type Events = Events;
       type State = State;
       type States = States;
       type Failures = Failures;
-      type StateFuture = StateFuture;
+      type StatesFuture = StatesFuture;
 
       /// transition gets an event and change the internal data relative to the type of event
       /// and the returns the state of the machine
-      fn transition(&mut self, event: Self::Events) -> Result<&Self::States, Self::Failures> {
-          let state = self.get_state();
-          match (state, event) {
+      fn transition(&mut self, event: Self::Events) -> StatesFuture {
+          match (self.get_state(), event) {
               (_, Events::GetUsers) => {
-                  let fut = async {
-                    let client = Client::new();
-                    let mut res = client.get("http://localhost:3333/users").send().await;
-                    match res {
-                      Ok(res) => {
-                          let mut acc = State { users: vec![] };
-                          match res.text().await {
-                            Ok(result) => {
-                              let users: Vec<User> = serde_json::from_str(result.as_str()).expect("could not serialize to struct");
-                              acc.users = users;
-                              Ok(acc)
-                            }
-                            Err(e) => Err(Failures::Message(e.to_string())),
+                self.state = States::Loading(self.get_raw_state().clone());
+                StatesFuture::new(Box::new(async {
+                  let client = Client::new();
+                  let res = client.get("http://localhost:3333/users").send().await;
+                  match res {
+                    Ok(res) => {
+                        match res.text().await {
+                          Ok(result) => {
+                            let users: Vec<User> = serde_json::from_str(result.as_str()).expect("could not serialize to struct");
+                            Ok(States::Done(State { users }))
                           }
-                      }
-                      Err(e) => Err(Failures::Message(e.to_string())),
+                          Err(e) => Err(Failures::Message(e.to_string())),
+                        }
                     }
-                  };
-                  *self.get_raw_state_mut() = self.get_runtime().block_on(StateFuture::new(Box::new(fut)))?;
-                  self.run()
+                    Err(e) => Err(Failures::Message(e.to_string())),
+                  }
+                }))
               }
               // (s, e) => {
               //     Err(Failures::Message(format!("Failure on transition for: {:?}, Event: {:?}", s, e)))
@@ -170,10 +170,6 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
               }
               _ => Ok(&self.state)
           }
-      }
-
-      fn get_runtime(&mut self) -> &mut tokio::runtime::Runtime {
-          &mut self.runtime
       }
 
       fn get_state(&self) -> &Self::States {
@@ -206,12 +202,25 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   let entries = [
       (
        Events::GetUsers,
+       States::Loading(State { users: vec![] }),
        States::Done(state1)
       )
   ];
 
-  for (event, expected) in entries.iter() {
-      assert_eq!(tourniquet.transition(event.clone()).unwrap(), expected);
+  // execute the request in another thread
+  // Pass the state to Loading
+  // and test the Done status with a timeout
+  // or whatever
+  //
+  // @TODO: handle the transition() as a Future
+  // a process it in the run() while returning the Loading
+  let mut runtime = tokio::runtime::Runtime::new().unwrap();
+  for (event, before, after) in entries.iter() {
+      let f = tourniquet.transition(event.clone());
+      assert_eq!(tourniquet.get_state(), before);
+      tourniquet.state = runtime.block_on(f).unwrap();
+      tourniquet.run();
+      assert_eq!(tourniquet.get_state(), after);
   }
 
   Ok(())

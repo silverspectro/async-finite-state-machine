@@ -3,7 +3,7 @@ all: build
 build:
 	cargo build --release
 
-test: gen-mock mockrs
+test: kill-mock-server gen-mock mockrs
 	mockrs serve tests/__fixtures__/db.json --port 3333 &
 	cargo test -- --nocapture
 	make kill-mock-server
@@ -17,7 +17,7 @@ delete-mocks:
 	mockrs gen tests/__fixtures__/template.json --output tests/__fixtures__/db.json
 
 kill-mock-server:
-	killall mockrs
+	killall mockrs | true
 
 mockrs: ~/.cargo/bin/mockrs 
 
