@@ -18,10 +18,7 @@ use async_finite_state_machine::{ AsyncMachine };
 use futures::task;
 
 use std::thread;
-use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::mpsc;
-use std::sync::Mutex;
 use std::time::Duration;
 
 use {
@@ -30,6 +27,8 @@ use {
         task::{Poll},
     },
 };
+
+use std::sync::mpsc::*;
 
 #[test]
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> { 
@@ -114,13 +113,17 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   struct Tourniquet {
       state: States,
       future_pool: Vec<StatesFuture>,
+      channel: (Vec<Sender<States>>, Receiver<States>),
   };
 
   impl Tourniquet {
       pub fn new() -> Self {
+        let (sender, receiver) = mpsc::channel();
+        let channel = (vec![sender], receiver);
           Tourniquet {
               state: States::Done(State { users: vec![] }),
               future_pool: vec![],
+              channel,
           }
       }
   }
@@ -161,19 +164,31 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
       /// run computes the state of the machine relative to its state
       fn run(&mut self) -> Result<&Self::States, Self::Failures> {
-        let mut runtime = tokio::runtime::Runtime::new().unwrap();
         while self.future_pool.len() > 0 {
-          self.state = runtime.block_on(self.future_pool.pop().unwrap())?;
+          let f = self.future_pool.pop();
+          let sender = self.channel.0[0].clone();
+          thread::spawn(move || {
+            let mut runtime = tokio::runtime::Runtime::new().unwrap();
+            match runtime.block_on(f.unwrap()) {
+              Ok(s) => {
+                sender.send(s).unwrap();
+              },
+              Err(e) => println!("{:?}", e),
+            };
+          });
         };
-          match self.get_state() {
-              States::Loading(c) => {
-                  if c.users.len() > 0 {
-                      self.state = States::Done(c.clone());
-                  }
-                  Ok(&self.state)
-              }
-              _ => Ok(&self.state)
+        match self.channel.1.try_recv() {
+          Ok(s) => {
+            self.state = s;
           }
+          Err(_e) => {
+            // messages are empty
+            // nothing to do
+          }
+        };
+        match self.get_state() {
+            _ => Ok(&self.state)
+        }
       }
 
       fn get_state(&self) -> &Self::States {
@@ -206,7 +221,13 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   let entries = [
       (
        Events::GetUsers,
-       States::Done(state1)
+       States::Loading(State { users: vec![] }),
+       States::Done(state1.clone())
+      ),
+      (
+       Events::GetUsers,
+       States::Loading(state1.clone()),
+       States::Done(state1.clone())
       )
   ];
 
@@ -214,13 +235,18 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   // Pass the state to Loading
   // and test the Done status with a timeout
   // or whatever
+  // DONE !
   //
-  // @TODO: handle the transition() as a Future
-  // a process it in the run() while returning the Loading
-  for (event, after) in entries.iter() {
-      assert_eq!(tourniquet.transition(event.clone())?, after);
+  // seems to work well for the moment
+  // certainly there will be some performance problems
+  // with complex cases
+  for (event, before, after) in entries.iter() {
+      assert_eq!(tourniquet.transition(event.clone())?, before);
+      thread::sleep(Duration::from_millis(300)); 
+      assert_eq!(tourniquet.run()?, after);
       assert_eq!(tourniquet.run()?, after);
   }
+  assert_eq!(tourniquet.get_state(), &States::Done(state1.clone()));
 
   Ok(())
 }
